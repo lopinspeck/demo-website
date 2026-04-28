@@ -201,7 +201,7 @@ const STEPS = [
   },
 ];
 
-function Step({ s }) {
+function Step({ s, onOpen }) {
   const Sch = window.SCHEMATICS[s.schKey];
   return (
     <section className="step" id={s.id} data-screen-label={`${s.n} ${s.title}`}>
@@ -220,9 +220,16 @@ function Step({ s }) {
           {s.notes()}
         </div>
         <figure className="schematic" style={{margin:0}}>
-          <div className="schematic-frame">
+          <button
+            type="button"
+            className="schematic-frame is-clickable"
+            onClick={onOpen}
+            aria-label={`放大檢視：${s.schCap[0]}`}
+            style={{ position: 'relative' }}
+          >
             <Sch />
-          </div>
+            <span className="schematic-zoom-hint" aria-hidden="true">點擊放大</span>
+          </button>
           <figcaption className="schematic-cap">
             <b>{s.schCap[0]}</b>
             <span>{s.schCap[1]}</span>
@@ -233,10 +240,56 @@ function Step({ s }) {
   );
 }
 
+function Lightbox({ step, onClose }) {
+  const Sch = window.SCHEMATICS[step.schKey];
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label={step.schCap[0]}
+      onClick={onClose}
+    >
+      <div className="lightbox-card" onClick={(e) => e.stopPropagation()}>
+        <header className="lightbox-head">
+          <div>
+            <div className="lightbox-eyebrow">{step.eyebrow}</div>
+            <div className="lightbox-title">{step.schCap[0]}</div>
+          </div>
+          <button
+            type="button"
+            className="lightbox-close"
+            onClick={onClose}
+            aria-label="關閉"
+          >×</button>
+        </header>
+        <div className="lightbox-frame">
+          <Sch />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Steps() {
+  const [active, setActive] = useState(null);
   return (
     <>
-      {STEPS.map(s => <Step key={s.id} s={s} />)}
+      {STEPS.map(s => (
+        <Step key={s.id} s={s} onOpen={() => setActive(s)} />
+      ))}
+      {active && <Lightbox step={active} onClose={() => setActive(null)} />}
     </>
   );
 }
